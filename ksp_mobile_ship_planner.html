@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#111827">
+<title>KSP Mobile Ship Planner</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a2d;--panel2:#18233b;--text:#eef3ff;--muted:#9eabc4;--line:#2b3854;--accent:#69a7ff;--good:#69d38b;--warn:#ffd166;--bad:#ff6b6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+button,input,select{font:inherit}
+.app{height:100dvh;display:flex;flex-direction:column}
+header{height:58px;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:#0d1426}
+header h1{font-size:16px;margin:0;flex:1}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:9px 11px;cursor:pointer}
+.btn:active{transform:scale(.97)}
+.main{flex:1;min-height:0;display:flex}
+.sidebar{width:270px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.search{margin:10px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0c1324;color:var(--text);outline:none}
+.tabs{display:flex;gap:5px;padding:0 10px 8px;overflow:auto}
+.tab{white-space:nowrap;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--muted)}
+.tab.active{background:var(--accent);color:#08101f;border-color:var(--accent);font-weight:700}
+.parts{overflow:auto;padding:0 10px 12px}
+.part{display:flex;align-items:center;gap:9px;padding:10px;margin-bottom:7px;border:1px solid var(--line);background:#10192c;border-radius:11px;cursor:pointer}
+.part:active{background:#1d2a46}
+.icon{width:36px;height:36px;display:grid;place-items:center;border-radius:8px;background:#24304a;font-size:18px}
+.part b{display:block;font-size:13px}.part small{color:var(--muted);font-size:11px}
+.workspace{flex:1;min-width:0;display:flex;flex-direction:column}
+.stats{display:flex;gap:7px;overflow:auto;padding:8px;border-bottom:1px solid var(--line);background:#0d1426}
+.stat{min-width:100px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 9px}.stat span{display:block;color:var(--muted);font-size:10px}.stat b{font-size:14px}
+.canvasWrap{flex:1;min-height:0;position:relative;overflow:hidden;background:
+radial-gradient(circle at 50% 25%,rgba(80,120,190,.10),transparent 38%),
+linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+background-size:auto,32px 32px,32px 32px}
+.canvas{position:absolute;left:50%;top:50%;width:700px;height:900px;transform:translate(-50%,-50%);transform-origin:center;touch-action:none}
+.rocket{position:absolute;left:350px;top:450px;transform:translate(-50%,-50%);width:160px;min-height:30px}
+.node{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center}
+.rocketPart{position:relative;display:flex;align-items:center;justify-content:center;border:1px solid #7f8da8;background:#394763;box-shadow:0 2px 8px #0008;color:white;user-select:none}
+.rocketPart.selected{outline:3px solid var(--accent);z-index:10}
+.rocketPart .label{font-size:9px;max-width:90%;text-align:center;pointer-events:none}
+.engine{background:#5a3c38}.tank{background:#46556f}.pod{background:#4f5968}.struct{background:#46505e}.utility{background:#3d5661}.wing{background:#514c67}
+.nozzle{width:34px;height:10px;background:#252b37;border:1px solid #111}
+.hint{position:absolute;left:10px;bottom:10px;max-width:320px;background:#10192cdd;border:1px solid var(--line);padding:8px 10px;border-radius:10px;color:var(--muted);font-size:11px}
+.right{width:260px;background:var(--panel);border-left:1px solid var(--line);padding:10px;overflow:auto}
+.right h3{font-size:13px;margin:4px 0 10px}.card{border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:9px;background:#10192c}
+.row{display:flex;justify-content:space-between;gap:8px;margin:7px 0;font-size:12px}.row span{color:var(--muted)}
+.stage{border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:6px;background:#141f35}
+.stageHead{display:flex;justify-content:space-between;align-items:center;font-size:12px}.stageParts{color:var(--muted);font-size:10px;margin-top:5px}
+.empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:12px}
+.bottom{display:none}
+@media(max-width:850px){
+.sidebar{width:210px}.right{width:220px}
+}
+@media(max-width:700px){
+header{height:52px}.sidebar{display:none}.right{display:none}.main{position:relative}
+.workspace{width:100%}.bottom{height:62px;display:flex;align-items:center;justify-content:space-around;border-top:1px solid var(--line);background:#0d1426}
+.bottom button{background:transparent;border:0;color:var(--text);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bottom span{font-size:20px}
+.mobilePanel{position:absolute;z-index:30;left:8px;right:8px;bottom:70px;max-height:65%;overflow:auto;background:#10192cf5;border:1px solid var(--line);border-radius:14px;padding:10px;display:none}
+.mobilePanel.open{display:block}
+.parts.mobileParts{padding:0}
+.canvas{width:500px;height:800px}
+}
+.toast{position:fixed;left:50%;bottom:75px;transform:translateX(-50%);background:#f0f4ff;color:#0a1020;padding:9px 13px;border-radius:10px;font-size:12px;z-index:99;display:none}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>🚀 KSP Mobile Ship Planner</h1>
+<button class="btn" id="newBtn">New</button>
+<button class="btn" id="saveBtn">Save</button>
+<button class="btn" id="loadBtn">Load</button>
+<input id="fileInput" type="file" accept=".json" hidden>
+</header>
+<div class="main">
+<aside class="sidebar">
+<input class="search" id="search" placeholder="Search parts…">
+<div class="tabs" id="tabs"></div>
+<div class="parts" id="parts"></div>
+</aside>
+<section class="workspace">
+<div class="stats">
+<div class="stat"><span>Parts</span><b id="sParts">0</b></div>
+<div class="stat"><span>Mass</span><b id="sMass">0.00 t</b></div>
+<div class="stat"><span>Δv (vacuum)</span><b id="sDv">0 m/s</b></div>
+<div class="stat"><span>Thrust</span><b id="sThrust">0 kN</b></div>
+<div class="stat"><span>TWR</span><b id="sTwr">0.00</b></div>
+</div>
+<div class="canvasWrap" id="wrap">
+<div class="canvas" id="canvas"><div class="rocket" id="rocket"></div></div>
+<div class="hint">Tap a part to add it. Tap a placed part to select it. Use the arrows in the panel to move it up/down, or delete it.</div>
+</div>
+</section>
+<aside class="right">
+<div class="card"><h3>Selected part</h3><div id="selected">Nothing selected.</div></div>
+<div class="card"><h3>Stages</h3><div id="stages"></div></div>
+<div class="card"><h3>Design</h3><div class="row"><span>Name</span><input id="shipName" value="Untitled KSP Craft" style="width:125px;background:#0c1324;color:white;border:1px solid #2b3854;border-radius:6px;padding:5px"></div><button class="btn" id="centerBtn" style="width:100%">Center rocket</button></div>
+</aside>
+</div>
+<div class="mobilePanel" id="mobilePanel"></div>
+<div class="bottom">
+<button id="partsBtn"><span>🧩</span>Parts</button>
+<button id="stagesBtn"><span>🪜</span>Stages</button>
+<button id="statsBtn"><span>📊</span>Stats</button>
+<button id="deleteBtn"><span>🗑️</span>Delete</button>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PARTS=[
+{name:"Mk1 Command Pod",cat:"Command",mass:.84,icon:"🛰️",w:62,h:42},
+{name:"Mk1-3 Command Pod",cat:"Command",mass:4,icon:"🚀",w:82,h:58},
+{name:"Stayputnik",cat:"Command",mass:.05,icon:"🛰️",w:46,h:38},
+{name:"FL-T100 Fuel Tank",cat:"Fuel",mass:.0625,fuel:45,icon:"🛢️",w:54,h:48},
+{name:"FL-T200 Fuel Tank",cat:"Fuel",mass:.125,fuel:90,icon:"🛢️",w:54,h:65},
+{name:"FL-T400 Fuel Tank",cat:"Fuel",mass:.25,fuel:180,icon:"🛢️",w:54,h:90},
+{name:"FL-T800 Fuel Tank",cat:"Fuel",mass:.5,fuel:360,icon:"🛢️",w:54,h:125},
+{name:"Oscar-B Fuel Tank",cat:"Fuel",mass:.025,fuel:18,icon:"🛢️",w:44,h:36},
+{name:"X200-8 Fuel Tank",cat:"Fuel",mass:1,fuel:720,icon:"🛢️",w:70,h:115},
+{name:"LV-909 Terrier",cat:"Engines",mass:.5,thrust:60,isp:345,icon:"🔥",w:62,h:48},
+{name:"LV-30 Reliant",cat:"Engines",mass:.9,thrust:240,isp:265,icon:"🔥",w:66,h:52},
+{name:"LV-T45 Swivel",cat:"Engines",mass:1.5,thrust:215,isp:320,icon:"🔥",w:70,h:58},
+{name:"LV-1 Ant",cat:"Engines",mass:.02,thrust:2,isp:315,icon:"🔥",w:40,h:34},
+{name:"LV-N Nerv",cat:"Engines",mass:3,thrust:60,isp:800,icon:"☢️",w:72,h:62},
+{name:"Twin-Boar",cat:"Engines",mass:2.5,thrust:2000,isp:280,icon:"🔥",w:92,h:72},
+{name:"TT-38K Radial Decoupler",cat:"Structural",mass:.05,icon:"🔗",w:25,h:40},
+{name:"TR-18A Stack Decoupler",cat:"Structural",mass:.05,icon:"🔗",w:52,h:22},
+{name:"TR-2V Stack Decoupler",cat:"Structural",mass:.1,icon:"🔗",w:66,h:24},
+{name:"Rockomax Brand Decoupler",cat:"Structural",mass:.2,icon:"🔗",w:80,h:26},
+{name:"FL-A10 Adapter",cat:"Structural",mass:.05,icon:"🔻",w:55,h:28},
+{name:"Advanced Nose Cone",cat:"Aerodynamics",mass:.1,icon:"🔺",w:54,h:38},
+{name:"Standard Nose Cone",cat:"Aerodynamics",mass:.05,icon:"🔺",w:54,h:35},
+{name:"Basic Fin",cat:"Aerodynamics",mass:.01,icon:"◢",w:48,h:35},
+{name:"AV-T1 Winglet",cat:"Aerodynamics",mass:.015,icon:"◢",w:58,h:40},
+{name:"LT-1 Landing Strut",cat:"Utility",mass:.03,icon:"🦿",w:28,h:55},
+{name:"LT-2 Landing Strut",cat:"Utility",mass:.05,icon:"🦿",w:30,h:70},
+{name:"OX-STAT Photovoltaic Panel",cat:"Utility",mass:.005,icon:"☀️",w:52,h:30},
+{name:"Z-100 Rechargeable Battery",cat:"Utility",mass:.005,icon:"🔋",w:44,h:28},
+{name:"Communotron 16",cat:"Utility",mass:.005,icon:"📡",w:28,h:42},
+{name:"FL-R1 RCS Fuel Tank",cat:"Utility",mass:.03,icon:"🟦",w:44,h:48},
+{name:"RV-105 RCS Thruster Block",cat:"Utility",mass:.05,thrust:.2,isp:240,icon:"💨",w:46,h:34},
+{name:"Science Jr.",cat:"Science",mass:.2,icon:"🔬",w:62,h:52},
+{name:"Mystery Goo",cat:"Science",mass:.01,icon:"🧪",w:36,h:36},
+{name:"Service Bay",cat:"Utility",mass:.25,icon:"📦",w:62,h:60},
+{name:"Mk16 Parachute",cat:"Utility",mass:.1,icon:"🪂",w:55,h:35},
+{name:"Heat Shield 1.25m",cat:"Utility",mass:.3,icon:"🛡️",w:66,h:28}
+];
+const CATS=["All","Command","Fuel","Engines","Structural","Aerodynamics","Utility","Science"];
+let design={name:"Untitled KSP Craft",parts:[],nextId:1};
+let selected=null,cat="All";
+
+const $=id=>document.getElementById(id);
+function toast(t){$("toast").textContent=t;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",1500)}
+function renderTabs(){
+ $("tabs").innerHTML=CATS.map(c=>`<button class="tab ${c===cat?'active':''}" data-cat="${c}">${c}</button>`).join("");
+ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{cat=b.dataset.cat;renderTabs();renderParts()});
+}
+function renderParts(){
+ const q=$("search").value.toLowerCase();
+ const list=PARTS.filter(p=>(cat==="All"||p.cat===cat)&&p.name.toLowerCase().includes(q));
+ $("parts").innerHTML=list.map((p,i)=>`<div class="part" data-i="${PARTS.indexOf(p)}"><div class="icon">${p.icon}</div><div><b>${p.name}</b><small>${p.cat} • ${p.mass} t${p.thrust?` • ${p.thrust} kN`:''}</small></div></div>`).join("");
+ document.querySelectorAll("#parts .part").forEach(el=>el.onclick=()=>addPart(PARTS[+el.dataset.i]));
+}
+function addPart(p){
+ const last=design.parts.length?design.parts[design.parts.length-1]:null;
+ design.parts.push({...p,id:design.nextId++,stage:0,x:350,y:last?last.y-((p.h+last.h)/2+6):430});
+ selected=design.parts.at(-1).id; render(); toast(p.name+" added");
+}
+function render(){
+ $("shipName").value=design.name;
+ $("rocket").innerHTML=design.parts.map(p=>{
+   const cls=p.cat==="Engines"?"engine":p.cat==="Fuel"?"tank":p.cat==="Command"?"pod":p.cat==="Structural"?"struct":p.cat==="Aerodynamics"?"wing":"utility";
+   return `<div class="node" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px"><div class="rocketPart ${cls} ${selected===p.id?'selected':''}" style="width:${p.w}px;height:${p.h}px" data-id="${p.id}"><span class="label">${p.icon} ${p.name}</span></div>${p.cat==="Engines"?'<div class="nozzle"></div>':''}</div>`;
+ }).join("");
+ document.querySelectorAll(".rocketPart").forEach(el=>el.onclick=e=>{e.stopPropagation();selected=+el.dataset.id;render()});
+ updateStats();renderSelected();renderStages();
+}
+function updateStats(){
+ let mass=design.parts.reduce((a,p)=>a+p.mass,0);
+ let fuel=design.parts.reduce((a,p)=>a+(p.fuel||0),0);
+ let thrust=design.parts.reduce((a,p)=>a+(p.thrust||0),0);
+ // Approximate stock-KSP-style vacuum delta-v using a representative Isp weighted by engine thrust.
+ let engines=design.parts.filter(p=>p.thrust);
+ let isp=engines.length?engines.reduce((a,p)=>a+p.isp*p.thrust,0)/thrust:0;
+ let wet=mass+fuel*.005;
+ let dry=mass;
+ let dv=isp>0&&wet>dry?isp*9.80665*Math.log(wet/dry):0;
+ let twr=mass?thrust/(mass*9.80665):0;
+ $("sParts").textContent=design.parts.length;
+ $("sMass").textContent=mass.toFixed(2)+" t";
+ $("sDv").textContent=Math.round(dv)+" m/s";
+ $("sThrust").textContent=Math.round(thrust)+" kN";
+ $("sTwr").textContent=twr.toFixed(2);
+}
+function renderSelected(){
+ const p=design.parts.find(x=>x.id===selected);
+ if(!p){$("selected").textContent="Nothing selected.";return}
+ $("selected").innerHTML=`<b>${p.name}</b>
+ <div class="row"><span>Mass</span><b>${p.mass} t</b></div>
+ <div class="row"><span>Category</span><b>${p.cat}</b></div>
+ <div class="row"><span>Stage</span><b>${p.stage+1}</b></div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px">
+ <button class="btn" onclick="moveSel(-1)">▲ Move</button><button class="btn" onclick="moveSel(1)">▼ Move</button>
+ <button class="btn" onclick="stageSel(-1)">Stage −</button><button class="btn" onclick="stageSel(1)">Stage +</button>
+ <button class="btn" onclick="duplicateSel()">Duplicate</button><button class="btn" onclick="deleteSel()">Delete</button>
+ </div>`;
+}
+function moveSel(dir){
+ const p=design.parts.find(x=>x.id===selected);if(!p)return;p.y+=dir*20;render();
+}
+function stageSel(dir){
+ const p=design.parts.find(x=>x.id===selected);if(!p)return;p.stage=Math.max(0,p.stage+dir);render();
+}
+function duplicateSel(){
+ const p=design.parts.find(x=>x.id===selected);if(!p)return;
+ const n={...p,id:design.nextId++,x:p.x+75,y:p.y+15};design.parts.push(n);selected=n.id;render();
+}
+function deleteSel(){if(selected===null)return;design.parts=design.parts.filter(p=>p.id!==selected);selected=design.parts.at(-1)?.id??null;render()}
+function renderStages(){
+ const max=design.parts.reduce((m,p)=>Math.max(m,p.stage),-1);
+ $("stages").innerHTML=max<0?'<div class="empty">No parts yet.</div>':Array.from({length:max+1},(_,s)=>{
+   const ps=design.parts.filter(p=>p.stage===s);
+   return `<div class="stage"><div class="stageHead"><b>Stage ${s+1}</b><span>${ps.length} part${ps.length!==1?'s':''}</span></div><div class="stageParts">${ps.map(p=>p.name).join(" • ")}</div></div>`;
+ }).join("");
+}
+$("search").oninput=renderParts;
+$("shipName").oninput=e=>design.name=e.target.value;
+$("newBtn").onclick=()=>{if(confirm("Start a new design?")){design={name:"Untitled KSP Craft",parts:[],nextId:1};selected=null;render()}};
+$("saveBtn").onclick=()=>{
+ const blob=new Blob([JSON.stringify(design,null,2)],{type:"application/json"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=(design.name||"ksp-craft").replace(/[^a-z0-9-_]+/gi,"_")+".json";a.click();URL.revokeObjectURL(a.href);
+};
+$("loadBtn").onclick=()=>$("fileInput").click();
+$("fileInput").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{design=JSON.parse(r.result);selected=null;render();toast("Design loaded")}catch{toast("Invalid design file")}};r.readAsText(f);
+};
+$("centerBtn").onclick=()=>{if(!design.parts.length)return;let min=Math.min(...design.parts.map(p=>p.y)),max=Math.max(...design.parts.map(p=>p.y));let off=450-(min+max)/2;design.parts.forEach(p=>p.y+=off);render()};
+$("canvas").onclick=e=>{if(e.target.id==="canvas"||e.target.id==="rocket"){selected=null;render()}};
+function mobilePanel(kind){
+ const panel=$("mobilePanel");panel.classList.add("open");
+ if(kind==="parts"){panel.innerHTML=`<input class="search" id="msearch" placeholder="Search parts…" value="${$("search").value}"><div class="tabs">${CATS.map(c=>`<button class="tab ${c===cat?'active':''}" data-mcat="${c}">${c}</button>`).join("")}</div><div class="parts mobileParts" id="mparts"></div>`; 
+   const draw=()=>{const q=$("msearch").value.toLowerCase();$("mparts").innerHTML=PARTS.filter(p=>(cat==="All"||p.cat===cat)&&p.name.toLowerCase().includes(q)).map(p=>`<div class="part"><div class="icon">${p.icon}</div><div><b>${p.name}</b><small>${p.cat} • ${p.mass} t${p.thrust?` • ${p.thrust} kN`:''}</small></div></div>`).join("");document.querySelectorAll("#mparts .part").forEach((el,i)=>el.onclick=()=>addPart(PARTS.filter(p=>(cat==="All"||p.cat===cat)&&p.name.toLowerCase().includes(q))[i]));};
+   draw();$("msearch").oninput=draw;panel.querySelectorAll("[data-mcat]").forEach(b=>b.onclick=()=>{cat=b.dataset.mcat;mobilePanel("parts")});
+ } else if(kind==="stages"){panel.innerHTML=`<h3>Stages</h3>${$("stages").innerHTML}`} else {panel.innerHTML=`<h3>Stats</h3>${$("selected").innerHTML}<hr>${$("sParts").parentElement.outerHTML}`}
+}
+$("partsBtn").onclick=()=>mobilePanel("parts");
+$("stagesBtn").onclick=()=>mobilePanel("stages");
+$("statsBtn").onclick=()=>mobilePanel("stats");
+$("deleteBtn").onclick=deleteSel;
+document.addEventListener("click",e=>{if(e.target.closest(".mobilePanel,.bottom"))return; if(window.innerWidth<=700)$("mobilePanel").classList.remove("open")});
+renderTabs();renderParts();render();
+</script>
+</body>
+</html>
